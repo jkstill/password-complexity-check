@@ -7,7 +7,7 @@ use warnings;
 
 use Exporter qw(import);
 our $VERSION=0.1;
-our @EXPORT = qw(&factorial);
+our @EXPORT = qw(&factorial &getComplexity);
 our @ISA=qw(Exporter);
 
 sub new {
