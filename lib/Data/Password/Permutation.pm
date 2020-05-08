@@ -11,16 +11,16 @@ our @EXPORT = qw(&factorial &getComplexity);
 our @ISA=qw(Exporter);
 
 sub new {
-	my ($class, $args) = @_;
+	my ($class, %args) = @_;
 
-	my $self={};
-	foreach my $key ( keys %{$args} ) {
-		$self->{$key} = "$args->{$key}";
-	}
+	my $self = bless \%args, $class;
 
 	if ( ! exists($self->{debug}) ) { $self->{debug} = 0; }
+	if ( ! exists($self->{fail_reason}) ) { $self->{fail_reason} = ''; }
+	if ( ! exists($self->{show_pass}) ) { $self->{show_pass} = 0; }
+	if ( ! exists($self->{show_fail}) ) { $self->{show_fail} = 1; }
 
-	return bless $self, $class;
+	return $self;
 }
 
 sub validateCharacters {
@@ -46,15 +46,22 @@ sub validatePassword {
 
 	$self->getComplexity;
 
-	#print "self: ", Dumper($self);
+	$self->{fail_reason} = '';
+
+	# check dictionary
+	if ( $self->{dictionary} ) {
+		if (exists( $self->{dictionary}{$self->{password}} ) ) {
+			$self->{fail_reason} = 'dictword';
+			return 0;
+		}
+	}
 
 	if ( $self->{complexity} < $self->{required_complexity} ) {
+		$self->{fail_reason} = 'complexity';
 		return 0;
 	}
 
-
 	return 1;
-
 }
 
 sub factorial {
@@ -80,9 +87,12 @@ sub getComplexity {
 
 	my $pwLen = length($self->{password});
 
-	# combination 
+	# permutation 
 	my $n = factorial($keySpace);
 	my $r = factorial($keySpace - $pwLen);
+
+	print "Password: $self->{password}\n" unless $keySpace;
+	
 	$self->{complexity} = $n / $r;
 
 	$self->debug('complexity{}:  ', [ 'n: ' => $n, 'r: ' => $r, 'complexity: ' => $self->{complexity} ] );
@@ -131,6 +141,47 @@ sub getCharClasses {
 	}
 
 	return $classHash;
+}
+
+sub output {
+	my $self = shift;
+	my $r=0;
+	$r = 1 if $self->{complexity} >= $self->{required_complexity};
+
+	my $printit=0;
+	if ($r and $self->{show_pass}) {$printit = 1;}
+	if (! $r and $self->{show_fail}) {$printit = 1;}
+
+	if ($printit) {
+		print "===  $self->{password} ===\n";
+		print  "   Result: " . ( $r ? 'OK' : 'Fail' ) . "\n";
+		if (! $r ) { 
+			print  "   Failed: $self->{fail_reason}\n";
+		}
+		printf "   required complexity: %12e\n", $self->{required_complexity};
+		printf "            complexity: %12e\n", $self->{complexity};
+	}
+}
+
+sub outputCSV {
+	my $self = shift;
+	my $RS = shift;
+	$RS = ',' unless $RS;
+
+	my $r=0;
+	$r = 1 if $self->{complexity} >= $self->{required_complexity};
+
+	my $printit=0;
+	if ($r and $self->{show_pass}) {$printit = 1;}
+	if (! $r and $self->{show_fail}) {$printit = 1;}
+
+	if ($printit) {
+		print "$self->{password}${RS}";
+		print  ( $r ? 'OK' : 'Fail' ); print "$RS";
+		print "$self->{fail_reason}${RS}";
+		printf "%12e${RS}", $self->{required_complexity};
+		printf "%12e\n", $self->{complexity};
+	}
 }
 
 sub debug {
