@@ -19,7 +19,10 @@ WriteMakefile
 	BUILD_REQUIRES => {
 	},
 	EXE_FILES => [
-		'pwdchk.pl'
+		'pwdchk.pl',
+		'pwd-array.pl',
+		'pwd-get-complexity.pl',
+		'pwdfile.pl',
 	],
 	META_MERGE   => {
 		'meta-spec' => { version => 2 },
