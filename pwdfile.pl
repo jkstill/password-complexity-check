@@ -8,11 +8,9 @@ use Data::Dumper;
 use Data::Password::Permutation;
 
 my $pxChk = new Data::Password::Permutation( 
-	{
 		#required_complexity => 1 * 10**14, # approx 8 characters - upper,lower,digit,special
 		required_complexity => 5 * 10**26, #
 		debug => 0,
-	}
 );
 
 my $file = '/home/jkstill/security/SecLists/Passwords/Common-Credentials/10k-most-common.txt';

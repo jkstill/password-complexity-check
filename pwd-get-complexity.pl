@@ -7,11 +7,9 @@ use Data::Dumper;
 use Data::Password::Permutation;
 
 my $pxChk = new Data::Password::Permutation( 
-	{
 		#required_complexity => 3 * 10**14, # approx 8 characters - upper,lower,digit,special
 		required_complexity => 5 * 10**26, # complexity required to exclude 'antidisestablishmentarianism'
 		debug => 0,
-	}
 );
 
 my @pwAry = (
