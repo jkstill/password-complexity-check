@@ -19,6 +19,7 @@ my $complexity = 1.3 * 10**44;
 my $singletonPassword=0;
 my $csvOutput=0;
 my ($showFail, $showPass)=(1,0);
+my $fieldSeparator=',';
 my $help=0;
 
 
@@ -84,7 +85,7 @@ if ($useDict) {
 		# dunno ahead of time if DOS or Unix file
 		#chomp $word;	
 		$word =~ s/\r?\n//;
-		$dictWords{$word}=0;
+		$dictWords{$word}=1;
 	}
 }
 
@@ -99,6 +100,8 @@ my $pxChk = new Data::Password::Permutation(
 	show_fail => $showFail,
 	show_pass => $showPass,
 	dictionary => \%dictWords,
+	output_type => $csvOutput ? 'CSV' : 'STD',
+	field_separator => $fieldSeparator,
 );
 
 # check the single password and exit
@@ -112,11 +115,7 @@ if ( ! $usePwdFile ) {
 	$pxChk->{password} = $password;
 	my $r = $pxChk->validatePassword;
 
-	if ( $csvOutput ) {
-		$pxChk->outputCSV(':');
-	} else {
-		$pxChk->output();
-	}
+	$pxChk->output();
 
 	exit;
 }
@@ -131,14 +130,9 @@ foreach my $password (<$pwdFH>) {
 
 	my $r = $pxChk->validatePassword;
 
-	if ( $csvOutput ) {
-		$pxChk->outputCSV(':');
-	} else {
-		$pxChk->output();
-	}
+	$pxChk->output();
 
 };
-
 
 
 sub usage {

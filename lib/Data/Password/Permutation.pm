@@ -4,11 +4,28 @@ package Data::Password::Permutation;
 use Data::Dumper;
 use strict;
 use warnings;
+use Carp;
 
 use Exporter qw(import);
 our $VERSION=0.1;
 our @EXPORT = qw(&factorial &getComplexity);
 our @ISA=qw(Exporter);
+
+=head1 new Permutation
+
+ Possible hash parameters
+
+ required_complexity : an integer representing minimum allowable complexity
+ debug               : non-zero is debug
+ show_pass           : 1 to show entries that pass - 0 to disable
+ show_fail           : 1 to show entries that fail - 0 to disable
+ fail_reason         : used internally - do not set
+ dictionary          : hashref of dictionary words
+ outoput_type        : CSV or STD - STD is default
+ field_separator     : defaults to ',' for CSV output
+
+=cut
+
 
 sub new {
 	my ($class, %args) = @_;
@@ -19,6 +36,7 @@ sub new {
 	if ( ! exists($self->{fail_reason}) ) { $self->{fail_reason} = ''; }
 	if ( ! exists($self->{show_pass}) ) { $self->{show_pass} = 0; }
 	if ( ! exists($self->{show_fail}) ) { $self->{show_fail} = 1; }
+	if ( ! exists($self->{output_type}) ) { $self->{output_type} = 'STD'; }
 
 	return $self;
 }
@@ -50,7 +68,7 @@ sub validatePassword {
 
 	# check dictionary
 	if ( $self->{dictionary} ) {
-		if (exists( $self->{dictionary}{$self->{password}} ) ) {
+		if (exists( $self->{dictionary}{lc($self->{password})} ) ) {
 			$self->{fail_reason} = 'dictword';
 			return 0;
 		}
@@ -145,42 +163,44 @@ sub getCharClasses {
 
 sub output {
 	my $self = shift;
-	my $r=0;
-	$r = 1 if $self->{complexity} >= $self->{required_complexity};
 
-	my $printit=0;
-	if ($r and $self->{show_pass}) {$printit = 1;}
-	if (! $r and $self->{show_fail}) {$printit = 1;}
-
-	if ($printit) {
-		print "===  $self->{password} ===\n";
-		print  "   Result: " . ( $r ? 'OK' : 'Fail' ) . "\n";
-		if (! $r ) { 
-			print  "   Failed: $self->{fail_reason}\n";
-		}
-		printf "   required complexity: %12e\n", $self->{required_complexity};
-		printf "            complexity: %12e\n", $self->{complexity};
+	my $FS=',';
+	if (defined ( $self->{field_separator} ) ) {
+		$FS = $self->{field_separator};
 	}
-}
 
-sub outputCSV {
-	my $self = shift;
-	my $RS = shift;
-	$RS = ',' unless $RS;
-
-	my $r=0;
-	$r = 1 if $self->{complexity} >= $self->{required_complexity};
+	my $r = $self->{fail_reason} ? 0 : 1;
 
 	my $printit=0;
 	if ($r and $self->{show_pass}) {$printit = 1;}
 	if (! $r and $self->{show_fail}) {$printit = 1;}
 
+	$self->{output_type} = 'STD' unless defined($self->{output_type});
+
+	my $OT=$self->{output_type};
+
 	if ($printit) {
-		print "$self->{password}${RS}";
-		print  ( $r ? 'OK' : 'Fail' ); print "$RS";
-		print "$self->{fail_reason}${RS}";
-		printf "%12e${RS}", $self->{required_complexity};
-		printf "%12e\n", $self->{complexity};
+		if ($OT eq 'CSV') {
+
+			print "$self->{password}${FS}";
+			print  ( $r ? 'OK' : 'Fail' ); print "$FS";
+			print "$self->{fail_reason}${FS}";
+			printf "%12e${FS}", $self->{required_complexity};
+			printf "%12e\n", $self->{complexity};
+
+		} elsif ($OT eq 'STD') {
+
+			print "===  $self->{password} ===\n";
+			print  "   Result: " . ( $r ? 'OK' : 'Fail' ) . "\n";
+			if (! $r ) { 
+				print  "   Failed: $self->{fail_reason}\n";
+			}
+			printf "   required complexity: %12e\n", $self->{required_complexity};
+			printf "            complexity: %12e\n", $self->{complexity};
+
+		} else {
+			croak "Unknown output type of $OT in output()\n";
+		}
 	}
 }
 
