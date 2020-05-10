@@ -8,8 +8,16 @@ use Carp;
 
 use Exporter qw(import);
 our $VERSION=0.1;
-our @EXPORT = qw(&factorial &getComplexity);
+our @EXPORT = qw(&factorial &getComplexity STD CSV);
 our @ISA=qw(Exporter);
+
+use constant {
+	STD	=> 0,
+	CSV	=> 1,
+	JSON	=> 2,
+	XML	=> 3,
+};
+
 
 =head1 new Permutation
 
@@ -21,7 +29,7 @@ our @ISA=qw(Exporter);
  show_fail           : 1 to show entries that fail - 0 to disable
  fail_reason         : used internally - do not set
  dictionary          : hashref of dictionary words
- outoput_type        : CSV or STD - STD is default
+ format              : CSV or STD - STD is default
  field_separator     : defaults to ',' for CSV output
 
 =cut
@@ -36,7 +44,12 @@ sub new {
 	if ( ! exists($self->{fail_reason}) ) { $self->{fail_reason} = ''; }
 	if ( ! exists($self->{show_pass}) ) { $self->{show_pass} = 0; }
 	if ( ! exists($self->{show_fail}) ) { $self->{show_fail} = 1; }
-	if ( ! exists($self->{output_type}) ) { $self->{output_type} = 'STD'; }
+	if ( ! exists($self->{format}) ) { $self->{format} = STD; }
+
+	$self->{formatters}[STD] = sub { $self->formatSTD(); };
+	$self->{formatters}[CSV] = sub { $self->formatCSV(); };
+	$self->{formatters}[XML] = sub { $self->formatXML(); };
+	$self->{formatters}[JSON] = sub { $self->formatJSON(); };
 
 	return $self;
 }
@@ -161,46 +174,70 @@ sub getCharClasses {
 	return $classHash;
 }
 
+sub formatSTD {
+	my $self = shift;
+
+	print "===  $self->{password} ===\n";
+	print  "   Result: " . ( $self->{fail_result} ? 'OK' : 'Fail' ) . "\n";
+	if (! $self->{fail_result} ) { 
+		print  "   Failed: $self->{fail_reason}\n";
+	}
+	printf "   required complexity: %12e\n", $self->{required_complexity};
+	printf "            complexity: %12e\n", $self->{complexity};
+
+	return;
+}
+
+
+sub formatCSV {
+	my $self = shift;
+
+	my $FS = $self->{field_separator};
+	print "$self->{password}${FS}";
+	print  ( $self->{fail_result} ? 'OK' : 'Fail' ); print "$FS";
+	print "$self->{fail_reason}${FS}";
+	printf "%12e${FS}", $self->{required_complexity};
+	printf "%12e\n", $self->{complexity};
+
+	return;
+}
+
+sub formatJSON {
+	my $self = shift;
+	carp "This is the stub for formatJSON\n";
+	return;
+}
+
+sub formatXML {
+	my $self = shift;
+	carp "This is the stub for formatXML\n";
+	return;
+}
+
+
 sub output {
 	my $self = shift;
 
 	my $FS=',';
 	if (defined ( $self->{field_separator} ) ) {
 		$FS = $self->{field_separator};
+	} else {
+		$self->{field_separator} = $FS;
 	}
 
-	my $r = $self->{fail_reason} ? 0 : 1;
+	$self->{fail_result} =  $self->{fail_reason} ? 0 : 1;
+	my $r = $self->{fail_reason};
 
 	my $printit=0;
 	if ($r and $self->{show_pass}) {$printit = 1;}
 	if (! $r and $self->{show_fail}) {$printit = 1;}
 
-	$self->{output_type} = 'STD' unless defined($self->{output_type});
+	$self->{format} = STD unless defined($self->{format});
 
-	my $OT=$self->{output_type};
+	my $OT=$self->{format};
 
 	if ($printit) {
-		if ($OT eq 'CSV') {
-
-			print "$self->{password}${FS}";
-			print  ( $r ? 'OK' : 'Fail' ); print "$FS";
-			print "$self->{fail_reason}${FS}";
-			printf "%12e${FS}", $self->{required_complexity};
-			printf "%12e\n", $self->{complexity};
-
-		} elsif ($OT eq 'STD') {
-
-			print "===  $self->{password} ===\n";
-			print  "   Result: " . ( $r ? 'OK' : 'Fail' ) . "\n";
-			if (! $r ) { 
-				print  "   Failed: $self->{fail_reason}\n";
-			}
-			printf "   required complexity: %12e\n", $self->{required_complexity};
-			printf "            complexity: %12e\n", $self->{complexity};
-
-		} else {
-			croak "Unknown output type of $OT in output()\n";
-		}
+		$self->{formatters}[$self->{format}]();
 	}
 }
 

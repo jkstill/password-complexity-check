@@ -11,13 +11,14 @@ $Data::Dumper::Maxdepth=3;
 $Data::Dumper::Terse=0;
 
 use Getopt::Long;
-use Data::Password::Permutation;
+use Data::Password::Permutation qw( STD CSV);
 
 my $dictFile = '';
 my $passwordFile = '';
 my $complexity = 1.3 * 10**44;
 my $singletonPassword=0;
-my $csvOutput=0;
+my $outputFormat=STD;
+my $requestedFormat='STD';
 my ($showFail, $showPass)=(1,0);
 my $fieldSeparator=',';
 my $help=0;
@@ -29,10 +30,16 @@ GetOptions (
 	"password!" => \$singletonPassword,
 	"show-fail!" => \$showFail,
 	"show-pass!" => \$showPass,
-	"use-csv!" => \$csvOutput,
+	"format=s" => \$requestedFormat,
 	"complexity=s" => \$complexity,
 	"h|help!" => \$help,
 ) or die usage(1);
+
+$requestedFormat = uc($requestedFormat);
+
+if ($requestedFormat eq 'STD' ) { $outputFormat = STD }
+elsif ($requestedFormat eq 'CSV' ) { $outputFormat = CSV }
+else { $outputFormat = STD }
 
 $complexity = sprintf("%12e",eval{$complexity});
 #print "Complexity: $complexity\n";
@@ -100,7 +107,7 @@ my $pxChk = new Data::Password::Permutation(
 	show_fail => $showFail,
 	show_pass => $showPass,
 	dictionary => \%dictWords,
-	output_type => $csvOutput ? 'CSV' : 'STD',
+	format => $outputFormat,
 	field_separator => $fieldSeparator,
 );
 
