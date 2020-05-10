@@ -226,7 +226,7 @@ sub output {
 	}
 
 	$self->{fail_result} =  $self->{fail_reason} ? 0 : 1;
-	my $r = $self->{fail_reason};
+	my $r = $self->{fail_result};
 
 	my $printit=0;
 	if ($r and $self->{show_pass}) {$printit = 1;}
