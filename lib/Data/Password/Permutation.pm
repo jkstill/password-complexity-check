@@ -234,8 +234,6 @@ sub output {
 
 	$self->{format} = STD unless defined($self->{format});
 
-	my $OT=$self->{format};
-
 	if ($printit) {
 		$self->{formatters}[$self->{format}]();
 	}
