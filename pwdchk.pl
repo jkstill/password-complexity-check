@@ -10,8 +10,12 @@ $Data::Dumper::Maxrecurse=3;
 $Data::Dumper::Maxdepth=3;
 $Data::Dumper::Terse=0;
 
+use Pod::Usage;
+
 use Getopt::Long;
 use Data::Password::Permutation qw( STD CSV);
+
+
 
 my $dictFile = '';
 my $passwordFile = '';
@@ -21,7 +25,6 @@ my $outputFormat=STD;
 my $requestedFormat='STD';
 my ($showFail, $showPass)=(1,0);
 my $fieldSeparator=',';
-my $help=0;
 
 
 GetOptions (
@@ -32,8 +35,9 @@ GetOptions (
 	"show-pass!" => \$showPass,
 	"format=s" => \$requestedFormat,
 	"complexity=s" => \$complexity,
-	"h|help!" => \$help,
-) or die usage(1);
+	"h|help!" => sub { pod2usage( -verbose => 1 ) },
+	"man!" => sub { pod2usage( -verbose => 2 ) },
+) or pod2usage(2);
 
 $requestedFormat = uc($requestedFormat);
 
@@ -44,19 +48,14 @@ else { $outputFormat = STD }
 $complexity = sprintf("%12e",eval{$complexity});
 #print "Complexity: $complexity\n";
 
-if ($help) {
-	usage();
-	exit;
-}
-
 if ($singletonPassword and $passwordFile) {
-	usage();
+	pod2usage( -verbose => 1 );
 	warn "too many options\n";
 	die;	
 }
 
 if (! ( $singletonPassword or $passwordFile ) ) {
-	usage();
+	pod2usage( -verbose => 1 );
 	warn "not enough options\n";
 	die;
 }
@@ -142,40 +141,82 @@ foreach my $password (<$pwdFH>) {
 };
 
 
-sub usage {
+__END__
 
-	use File::Basename;
-	my $basename = basename($0);
+=head1 NAME
 
-	print qq {
+ 
+ pwdchk.pl 
 
-$basename
+=head1 SYNOPSIS
 
-usage: $basename 
+ Get the relative strength of a password via permutation as per the length of the password and the number of characters in the keyspace
 
-  --dict-file      the file used to check if password is a dictionary word
-                   this file is user supplied
-                   no dictionary check is performed if the file is not provided
+ Use a threshold to determine if the strength is sufficient.
 
-  --password-file  a file containing passwords to check
+ Optionally include a dictionary file to eliminate dictionary words.
 
-  --password       get password from stdin
+  --dict-file
+  --password-file  
+  --password       
+  --complexity     
+  --show-fail 
+  --show-pass
+  --format
 
-  --complexity     the complexity required for a password to pass the check
-                   default is 1.3 * 10**44
-                   the value may be passed as an integer or as scientific notation
-                   for instance, the following values work
-                   105, 42, 10e45, 1000000000
+=head1 Options
 
-  --show-fail      show passwords that failed - default is true
+=over 8
 
-  --show-pass      show passwords that passed - default is false
-                   use --no-show-pass to disable
+=item B<--dict-file>
 
-  --use-csv        use CSV output
+ the file used to check if password is a dictionary word
+ this file is user supplied
+ no dictionary check is performed if the file is not provided
 
-};
+=item B<--password-file>
+
+ a file containing passwords to check
+
+=item B<--password>
+
+ get password from stdin
+
+=item B<--complexity>
+
+ the complexity required for a password to pass the check
+ default is 1.3 * 10**44
+ the value may be passed as an integer or as scientific notation
+ for instance, the following values work
+ 105, 42, 10e45, 1000000000
+
+=item B<--show-fail>
+
+ show passwords that failed - default is true
+
+=item B<--show-pass>
+
+  show passwords that passed - default is false
+  use --no-show-pass to disable
+
+=item B<--format>
+
+ STD or  CSV output. default is STD
+
+=back
+
+=head1 Examples
+
+ As run from the dev directory without installing
+
+ Password files from https://github.com/danielmiessler/SecLists
+
+ perl -I lib  pwdchk.pl --password-file xato-net-10-million-passwords-1000000.txt --dict-file dict-words.txt
+
+ perl -I lib  pwdchk.pl --password-file xato-net-10-million-passwords-1000000.txt   --no-show-fail --show-pass  --complexity 10e45
+
+ echo Antidisestabl1shmentarianism | perl -I lib  pwdchk.pl   --password   --show-fail --show-pass  --complexity 1e45
 
 
-}
+=cut
 
